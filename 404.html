@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<link rel="icon" href="favicon.svg">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ページが見つかりません | Comdesk Practice</title>
+<!--
+  このファイルはサイトルート直下に置かれるが、/announce/xxx のような深い階層の
+  URL からも表示される。相対パスでも絶対パスでも style.css を確実に解決できない
+  ため、必要最小限のスタイルだけをここに直接書いている（style.css は読み込まない）。
+-->
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #f4f6f9;
+    color: #1b2430;
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, "Yu Gothic UI",
+                 system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .notfound {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 24px;
+  }
+  .notfound__code { font-size: 72px; font-weight: 800; color: #1668b3; line-height: 1; }
+  .notfound__msg  { font-size: 18px; font-weight: 700; margin: 12px 0 4px; }
+  .notfound__sub  { color: #5c6b7f; margin: 0 0 24px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: #1668b3;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #10508b; }
+  .btn:focus-visible { outline: 2px solid #1668b3; outline-offset: 2px; }
+</style>
+</head>
+<body class="notfound">
+
+<main>
+  <div class="notfound__code" data-testid="notfound-code">404</div>
+  <div class="notfound__msg" data-testid="notfound-message">ページが見つかりません</div>
+  <p class="notfound__sub" data-testid="notfound-sub">お探しのページは存在しないか、移動された可能性があります。</p>
+  <a class="btn" href="auth/" data-testid="notfound-home-link">ログイン画面へ戻る</a>
+</main>
+
+<script>
+/* GitHub Pages では /repo/ のようなサブパス配下、かつ /announce/xxx のような
+   深い階層からも 404.html が表示される。リンク先を実行時に解決する。 */
+(function () {
+  'use strict';
+  var link = document.querySelector('[data-testid="notfound-home-link"]');
+  if (!link) return;
+  var segs = location.pathname.split('/').filter(Boolean);
+  // GitHub Pages のプロジェクトサイトは /<repo>/ 配下に置かれる。
+  // それ以外（独自ドメイン・Vercel・ローカル）はサイトルートが '/'。
+  var base = (/\.github\.io$/i.test(location.hostname) && segs.length) ? '/' + segs[0] + '/' : '/';
+  link.setAttribute('href', base + 'auth/');
+})();
+</script>
+</body>
+</html>

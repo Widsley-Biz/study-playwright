@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ユーザー管理 | Comdesk Practice</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header data-shell="header"></header>
+  <div class="app-body">
+    <aside data-shell="sidebar"></aside>
+    <main class="main">
+
+      <div class="page-head">
+        <div>
+          <h1 data-testid="page-title">ユーザー管理</h1>
+          <p>登録済みユーザーの氏名・権限・状態を編集できます。</p>
+        </div>
+        <span class="page-head__spacer"></span>
+      </div>
+
+      <div data-testid="flash-area" aria-live="polite"></div>
+
+      <div class="card">
+        <div class="card__head"><h2>ユーザー一覧</h2></div>
+        <div class="card__body" style="padding:0">
+          <table class="table" data-testid="user-table">
+            <thead>
+              <tr>
+                <th>ユーザーID</th>
+                <th>氏名</th>
+                <th>権限</th>
+                <th>状態</th>
+                <th class="tar">操作</th>
+              </tr>
+            </thead>
+            <tbody data-testid="user-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ユーザー編集モーダル -->
+<div class="modal-backdrop" data-testid="user-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-heading">
+    <div class="modal__head">
+      <h2 id="user-modal-heading" data-testid="user-modal-heading">ユーザー編集</h2>
+      <button type="button" class="modal__close" data-testid="user-modal-close-button"
+              aria-label="閉じる">×</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="userName">氏名<span class="field__req">必須</span></label>
+        <input class="input" type="text" id="userName" data-testid="user-name-input">
+        <p class="error-text" data-testid="user-name-error" hidden>必須項目です</p>
+      </div>
+      <div class="field">
+        <label class="field__label" for="userRole">権限</label>
+        <select class="select" id="userRole" data-testid="user-role-select">
+          <option value="管理者">管理者</option>
+          <option value="一般">一般</option>
+          <option value="閲覧のみ">閲覧のみ</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="userMemo">メモ</label>
+        <textarea class="textarea" id="userMemo" data-testid="user-memo-input"
+                  style="min-height:80px"></textarea>
+      </div>
+      <div class="field mb-0">
+        <label class="field__label" for="userStatus">状態</label>
+        <select class="select" id="userStatus" data-testid="user-status-select">
+          <option value="有効">有効</option>
+          <option value="停止中">停止中</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--secondary" data-testid="user-cancel-button">閉じる</button>
+      <button type="button" class="btn" data-testid="user-save-button">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var session = App.initPage('users');
+  if (!session) return;
+
+  /* ---------- 初期データ（リロードで必ずこの状態に戻る） ---------- */
+
+  function nameOf(userId) {
+    return App.DISPLAY_NAMES[userId] || 'ゲスト ユーザー';
+  }
+
+  var users = [
+    { id: 'user001@widsley.com', name: nameOf('user001@widsley.com'), role: '管理者', status: '有効',   memo: '' },
+    { id: 'user002@widsley.com', name: nameOf('user002@widsley.com'), role: '一般',   status: '有効',   memo: '' },
+    { id: 'user003@widsley.com', name: nameOf('user003@widsley.com'), role: '一般',   status: '有効',   memo: '' },
+    { id: 'user004@widsley.com', name: nameOf('user004@widsley.com'), role: '管理者', status: '停止中', memo: '' },
+    { id: 'user005@widsley.com', name: nameOf('user005@widsley.com'), role: '一般',   status: '有効',   memo: '' },
+    { id: 'user006@widsley.com', name: nameOf('user006@widsley.com'), role: '一般',   status: '停止中', memo: '' }
+  ];
+
+  var modal        = document.querySelector('[data-testid="user-modal"]');
+  var nameInput    = document.querySelector('[data-testid="user-name-input"]');
+  var roleSelect   = document.querySelector('[data-testid="user-role-select"]');
+  var memoInput    = document.querySelector('[data-testid="user-memo-input"]');
+  var statusSelect = document.querySelector('[data-testid="user-status-select"]');
+  var nameErr      = document.querySelector('[data-testid="user-name-error"]');
+
+  var listEl       = document.querySelector('[data-testid="user-list"]');
+  var flashEl      = document.querySelector('[data-testid="flash-area"]');
+
+  var editingId = null;
+
+  /* ---------- 描画 ---------- */
+
+  function flash(message) {
+    flashEl.innerHTML =
+      '<div class="alert alert--success" role="status" data-testid="flash-message" ' +
+      'style="margin-bottom:16px">' + App.esc(message) + '</div>';
+  }
+
+  function render() {
+    listEl.innerHTML = users.map(function (u) {
+      var badge = u.status === '有効'
+        ? '<span class="badge badge--on" data-testid="user-status">有効</span>'
+        : '<span class="badge badge--off" data-testid="user-status">停止中</span>';
+      return '' +
+        '<tr data-testid="user-row" data-user-id="' + App.esc(u.id) + '">' +
+          '<td data-testid="user-id">' + App.esc(u.id) + '</td>' +
+          '<td data-testid="user-name">' + App.esc(u.name) + '</td>' +
+          '<td data-testid="user-role">' + App.esc(u.role) + '</td>' +
+          '<td>' + badge + '</td>' +
+          '<td class="actions">' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-testid="user-edit-button">編集</button>' +
+          '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ---------- モーダル制御 ---------- */
+
+  function openModal(user) {
+    editingId = user.id;
+    nameInput.value    = user.name;
+    roleSelect.value   = user.role;
+    memoInput.value    = user.memo;
+    statusSelect.value = user.status;
+    nameErr.hidden = true;
+    modal.hidden = false;
+    nameInput.focus();
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    editingId = null;
+  }
+
+  function validate() {
+    var ok = true;
+    nameErr.hidden = true;
+    if (!nameInput.value.trim()) { nameErr.hidden = false; ok = false; }
+    return ok;
+  }
+
+  function save() {
+    if (!validate()) return;
+    var name = nameInput.value.trim();
+    var role = roleSelect.value;
+    var memo = memoInput.value;
+    var status = statusSelect.value;
+
+    users.forEach(function (u) {
+      if (u.id === editingId) {
+        u.name = name;
+        u.role = role;
+        u.memo = memo;
+        u.status = status;
+      }
+    });
+    closeModal();
+    render();
+    flash('ユーザー情報を更新しました');
+  }
+
+  /* ---------- イベント ---------- */
+
+  document.querySelector('[data-testid="user-modal-close-button"]').addEventListener('click', closeModal);
+  document.querySelector('[data-testid="user-cancel-button"]').addEventListener('click', closeModal);
+  document.querySelector('[data-testid="user-save-button"]').addEventListener('click', save);
+
+  listEl.addEventListener('click', function (e) {
+    var row = e.target.closest('[data-testid="user-row"]');
+    if (!row) return;
+    if (!e.target.closest('[data-testid="user-edit-button"]')) return;
+    var id = row.getAttribute('data-user-id');
+    var target = users.filter(function (u) { return u.id === id; })[0];
+    if (target) openModal(target);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

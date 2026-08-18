@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comdesk Practice</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body class="login-page">
+
+<p data-testid="redirect-message">読み込み中…</p>
+
+<noscript>
+  <p><a href="auth/" data-testid="redirect-link">ログイン画面へ進む</a></p>
+</noscript>
+
+<script>
+(function () {
+  'use strict';
+  location.replace('auth/');
+})();
+</script>
+</body>
+</html>

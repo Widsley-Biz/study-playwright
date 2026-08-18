@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>アクセス管理 | Comdesk Practice</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header data-shell="header"></header>
+  <div class="app-body">
+    <aside data-shell="sidebar"></aside>
+    <main class="main">
+
+      <div class="page-head">
+        <div>
+          <h1 data-testid="page-title">アクセス管理</h1>
+          <p>通知の受け取り設定とログインパスワードの変更ができます。</p>
+        </div>
+        <span class="page-head__spacer"></span>
+      </div>
+
+      <div data-testid="flash-area" aria-live="polite"></div>
+
+      <div class="card">
+        <div class="card__head"><h2>通知設定</h2></div>
+        <div class="card__body">
+
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <label class="toggle-row__title" for="notifAssign">担当者アサイン時</label>
+              <span class="toggle-row__desc" style="display:block">自分が対応担当に割り当てられたときに通知します。</span>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="notifAssign" data-testid="notif-assign" style="position:absolute;inset:0;width:100%;height:100%;margin:0;z-index:1;cursor:pointer">
+              <span class="switch__track" aria-hidden="true"></span>
+            </span>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <label class="toggle-row__title" for="notifMention">メンションされた時</label>
+              <span class="toggle-row__desc" style="display:block">情報共有ボードなどで自分がメンションされたときに通知します。</span>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="notifMention" data-testid="notif-mention" style="position:absolute;inset:0;width:100%;height:100%;margin:0;z-index:1;cursor:pointer">
+              <span class="switch__track" aria-hidden="true"></span>
+            </span>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <label class="toggle-row__title" for="notifKeyword">キーワード検知時</label>
+              <span class="toggle-row__desc" style="display:block">通話中に登録キーワードを検知したときに通知します。</span>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="notifKeyword" data-testid="notif-keyword" style="position:absolute;inset:0;width:100%;height:100%;margin:0;z-index:1;cursor:pointer">
+              <span class="switch__track" aria-hidden="true"></span>
+            </span>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <label class="toggle-row__title" for="notifReport">日次レポート</label>
+              <span class="toggle-row__desc" style="display:block">前日の対応件数をまとめたレポートを毎朝送信します。</span>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="notifReport" data-testid="notif-report" style="position:absolute;inset:0;width:100%;height:100%;margin:0;z-index:1;cursor:pointer">
+              <span class="switch__track" aria-hidden="true"></span>
+            </span>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <label class="toggle-row__title" for="notifLogin">新しい端末からのログイン</label>
+              <span class="toggle-row__desc" style="display:block">未登録の端末でログインされたときに通知します。</span>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="notifLogin" data-testid="notif-login" style="position:absolute;inset:0;width:100%;height:100%;margin:0;z-index:1;cursor:pointer">
+              <span class="switch__track" aria-hidden="true"></span>
+            </span>
+          </div>
+
+          <div style="margin-top:18px">
+            <button type="button" class="btn" data-testid="notif-save-button">保存</button>
+            <button type="button" class="btn btn--secondary" data-testid="notif-reset-button">リセット</button>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><h2>パスワード変更</h2></div>
+        <div class="card__body">
+
+          <div data-testid="pw-form-error-area">
+            <p class="alert alert--error" data-testid="pw-form-error" role="alert"
+               style="margin-bottom:16px;display:none" hidden>入力内容を確認してください</p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="pwCurrent">現在のパスワード<span class="field__req">必須</span></label>
+            <input class="input" type="password" id="pwCurrent" data-testid="pw-current-input">
+            <p class="error-text" data-testid="pw-current-error" hidden>必須項目です</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="pwNew">新しいパスワード<span class="field__req">必須</span></label>
+            <input class="input" type="password" id="pwNew" data-testid="pw-new-input">
+            <p class="error-text" data-testid="pw-new-error" hidden>必須項目です</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="pwConfirm">新しいパスワード（確認）<span class="field__req">必須</span></label>
+            <input class="input" type="password" id="pwConfirm" data-testid="pw-confirm-input">
+            <p class="error-text" data-testid="pw-confirm-error" hidden>必須項目です</p>
+          </div>
+
+          <button type="button" class="btn" data-testid="pw-submit-button">パスワードを変更</button>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var session = App.initPage('access');
+  if (!session) return;
+
+  /* ---------- 通知設定 ---------- */
+
+  // 初期状態（リロードで必ずこの状態に戻る）
+  var NOTIF_DEFAULTS = {
+    'notif-assign':  true,
+    'notif-mention': true,
+    'notif-keyword': false,
+    'notif-report':  false,
+    'notif-login':   false
+  };
+  var NOTIF_KEYS = ['notif-assign', 'notif-mention', 'notif-keyword', 'notif-report', 'notif-login'];
+
+  var flashEl = document.querySelector('[data-testid="flash-area"]');
+
+  function flash(message) {
+    flashEl.innerHTML =
+      '<div class="alert alert--success" role="status" data-testid="flash-message" ' +
+      'style="margin-bottom:16px">' + App.esc(message) + '</div>';
+  }
+
+  function notifInput(key) {
+    return document.querySelector('[data-testid="' + key + '"]');
+  }
+
+  function applyNotifDefaults() {
+    NOTIF_KEYS.forEach(function (key) {
+      notifInput(key).checked = NOTIF_DEFAULTS[key];
+    });
+  }
+
+  document.querySelector('[data-testid="notif-save-button"]')
+    .addEventListener('click', function () {
+      flash('通知設定を保存しました');
+    });
+
+  document.querySelector('[data-testid="notif-reset-button"]')
+    .addEventListener('click', function () {
+      applyNotifDefaults();
+      flash('通知設定をリセットしました');
+    });
+
+  applyNotifDefaults();
+
+  /* ---------- パスワード変更 ---------- */
+
+  var currentInput = document.querySelector('[data-testid="pw-current-input"]');
+  var newInput     = document.querySelector('[data-testid="pw-new-input"]');
+  var confirmInput = document.querySelector('[data-testid="pw-confirm-input"]');
+  var currentErr   = document.querySelector('[data-testid="pw-current-error"]');
+  var newErr       = document.querySelector('[data-testid="pw-new-error"]');
+  var confirmErr   = document.querySelector('[data-testid="pw-confirm-error"]');
+  var formErr      = document.querySelector('[data-testid="pw-form-error"]');
+
+  function clearPasswordErrors() {
+    currentErr.hidden = true;
+    newErr.hidden = true;
+    confirmErr.hidden = true;
+    hideFormError();
+  }
+
+  function showError(el, message) {
+    el.textContent = message;
+    el.hidden = false;
+  }
+
+  /** hidden 属性だけでは .alert の display 指定に負けるため、display も合わせて切り替える */
+  function showFormError(message) {
+    formErr.textContent = message;
+    formErr.hidden = false;
+    formErr.style.display = '';
+  }
+
+  function hideFormError() {
+    formErr.hidden = true;
+    formErr.style.display = 'none';
+  }
+
+  function changePassword() {
+    clearPasswordErrors();
+
+    var current = currentInput.value;
+    var next = newInput.value;
+    var confirm = confirmInput.value;
+    var ok = true;
+
+    if (!current) {
+      showError(currentErr, '必須項目です');
+      ok = false;
+    } else if (current !== App.VALID_PASSWORD) {
+      showError(currentErr, '現在のパスワードが正しくありません');
+      ok = false;
+    }
+
+    if (!next) {
+      showError(newErr, '必須項目です');
+      ok = false;
+    } else if (next.length < 8) {
+      showError(newErr, '8文字以上で入力してください');
+      ok = false;
+    }
+
+    if (!confirm) {
+      showError(confirmErr, '必須項目です');
+      ok = false;
+    } else if (next && confirm !== next) {
+      showError(confirmErr, '新しいパスワードが一致しません');
+      ok = false;
+    }
+
+    if (!ok) {
+      showFormError('パスワードを変更できませんでした。入力内容を確認してください。');
+      return;
+    }
+
+    currentInput.value = '';
+    newInput.value = '';
+    confirmInput.value = '';
+    flash('パスワードを変更しました');
+  }
+
+  document.querySelector('[data-testid="pw-submit-button"]')
+    .addEventListener('click', changePassword);
+})();
+</script>
+</body>
+</html>

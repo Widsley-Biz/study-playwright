@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通常コールモード | Comdesk Practice</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header data-shell="header"></header>
+  <div class="app-body">
+    <aside data-shell="sidebar"></aside>
+    <main class="main">
+
+      <div class="page-head">
+        <div>
+          <h1 data-testid="page-title">通常コールモード</h1>
+          <p>本日の架電状況と架電リストを確認できます。</p>
+        </div>
+        <span class="page-head__spacer"></span>
+      </div>
+
+      <div data-testid="flash-area" aria-live="polite"></div>
+
+      <section class="stat-row" data-testid="stat-row">
+        <div class="stat">
+          <div class="stat__label">本日の架電数</div>
+          <div class="stat__value" data-testid="stat-call-count">42</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">接続率</div>
+          <div class="stat__value" data-testid="stat-connect-rate">38%</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">平均通話時間</div>
+          <div class="stat__value" data-testid="stat-avg-duration">3分12秒</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">未対応</div>
+          <div class="stat__value" data-testid="stat-pending">7</div>
+        </div>
+      </section>
+
+      <div class="card">
+        <div class="card__head"><h2>架電リスト</h2></div>
+        <div class="card__body" style="padding:0">
+          <table class="table" data-testid="call-table">
+            <thead>
+              <tr>
+                <th>顧客名</th>
+                <th>電話番号</th>
+                <th>ステータス</th>
+                <th>最終架電日</th>
+                <th class="tar">操作</th>
+              </tr>
+            </thead>
+            <tbody data-testid="call-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var session = App.initPage('call');
+  if (!session) return;
+
+  /* ---------- 初期データ（リロードで必ずこの状態に戻る） ---------- */
+
+  var customers = [
+    { id: 1, name: '株式会社アオイ商事', phone: '090-0000-0001',
+      status: '未対応', lastCalledAt: '2026/04/01' },
+    { id: 2, name: '有限会社ミドリ工業',   phone: '090-0000-0002',
+      status: '対応中', lastCalledAt: '2026/04/02' },
+    { id: 3, name: 'カワセ電機株式会社',   phone: '090-0000-0003',
+      status: '完了',   lastCalledAt: '2026/04/03' },
+    { id: 4, name: '株式会社ハルカゼ物流', phone: '090-0000-0004',
+      status: '未対応', lastCalledAt: '2026/04/04' },
+    { id: 5, name: 'ソラマメ食品株式会社', phone: '090-0000-0005',
+      status: '対応中', lastCalledAt: '2026/04/05' }
+  ];
+
+  var STATUS_CLASS = {
+    '未対応': 'badge badge--warn',
+    '対応中': 'badge badge--on',
+    '完了':   'badge badge--off'
+  };
+
+  var listEl  = document.querySelector('[data-testid="call-list"]');
+  var flashEl = document.querySelector('[data-testid="flash-area"]');
+
+  /* ---------- 描画 ---------- */
+
+  function flash(message) {
+    flashEl.innerHTML =
+      '<div class="alert alert--info" role="status" data-testid="flash-message" ' +
+      'style="margin-bottom:16px">' + App.esc(message) + '</div>';
+  }
+
+  function render() {
+    listEl.innerHTML = customers.map(function (c) {
+      return '' +
+        '<tr data-testid="call-row" data-customer-id="' + c.id + '">' +
+          '<td data-testid="call-customer-name">' + App.esc(c.name) + '</td>' +
+          '<td data-testid="call-phone">' + App.esc(c.phone) + '</td>' +
+          '<td>' +
+            '<span class="' + STATUS_CLASS[c.status] + '" data-testid="call-status">' +
+              App.esc(c.status) +
+            '</span>' +
+          '</td>' +
+          '<td data-testid="call-last-called">' + App.esc(c.lastCalledAt) + '</td>' +
+          '<td class="actions">' +
+            '<button type="button" class="btn btn--sm" data-testid="call-start-button">発信</button>' +
+          '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ---------- イベント ---------- */
+
+  listEl.addEventListener('click', function (e) {
+    if (!e.target.closest('[data-testid="call-start-button"]')) return;
+    var row = e.target.closest('[data-testid="call-row"]');
+    if (!row) return;
+    var id = Number(row.getAttribute('data-customer-id'));
+    var target = customers.filter(function (c) { return c.id === id; })[0];
+    if (!target) return;
+    flash(target.name + ' に発信しました');
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

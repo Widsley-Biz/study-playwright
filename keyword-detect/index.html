@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>キーワード設定 | Comdesk Practice</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header data-shell="header"></header>
+  <div class="app-body">
+    <aside data-shell="sidebar"></aside>
+    <main class="main">
+
+      <div class="page-head">
+        <div>
+          <h1 data-testid="page-title">キーワード設定</h1>
+          <p>通話中に検知したいキーワードを登録します。</p>
+        </div>
+        <span class="page-head__spacer"></span>
+        <button type="button" class="btn" data-testid="add-keyword-button">キーワード追加</button>
+      </div>
+
+      <div data-testid="flash-area" aria-live="polite"></div>
+
+      <div class="card">
+        <div class="card__head"><h2>キーワード一覧</h2></div>
+        <div class="card__body" style="padding:0">
+          <table class="table" data-testid="keyword-table">
+            <thead>
+              <tr>
+                <th>キーワード</th>
+                <th>区分</th>
+                <th>通知先</th>
+                <th>状態</th>
+                <th class="tar">操作</th>
+              </tr>
+            </thead>
+            <tbody data-testid="keyword-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- キーワードモーダル（新規／編集 共用） -->
+<div class="modal-backdrop" data-testid="keyword-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="keyword-modal-heading">
+    <div class="modal__head">
+      <h2 id="keyword-modal-heading" data-testid="keyword-modal-heading">キーワード追加</h2>
+      <button type="button" class="modal__close" data-testid="keyword-modal-close-button"
+              aria-label="閉じる">×</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="keywordName">キーワード<span class="field__req">必須</span></label>
+        <input class="input" type="text" id="keywordName" data-testid="keyword-name-input">
+        <p class="error-text" data-testid="keyword-name-error" hidden>必須項目です</p>
+      </div>
+      <div class="field">
+        <label class="field__label" for="keywordCategory">区分</label>
+        <select class="select" id="keywordCategory" data-testid="keyword-category-select">
+          <option value="リスク">リスク</option>
+          <option value="営業">営業</option>
+          <option value="品質">品質</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="keywordNotify">通知先</label>
+        <input class="input" type="text" id="keywordNotify" data-testid="keyword-notify-input">
+      </div>
+      <div class="field mb-0">
+        <label class="field__label" for="keywordEnabled">有効にする</label>
+        <input type="checkbox" id="keywordEnabled" data-testid="keyword-enabled-checkbox">
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--secondary" data-testid="keyword-cancel-button">閉じる</button>
+      <button type="button" class="btn" data-testid="keyword-add-submit-button">追加</button>
+      <button type="button" class="btn" data-testid="keyword-save-button" style="display:none" hidden>保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 削除確認モーダル -->
+<div class="modal-backdrop" data-testid="keyword-delete-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="keyword-delete-heading" style="max-width:420px">
+    <div class="modal__head">
+      <h2 id="keyword-delete-heading">キーワードの削除</h2>
+      <button type="button" class="modal__close" data-testid="keyword-delete-modal-close-button"
+              aria-label="閉じる">×</button>
+    </div>
+    <div class="modal__body">
+      <p class="mb-0" data-testid="keyword-delete-modal-message">このキーワードを削除します。よろしいですか？</p>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--secondary" data-testid="keyword-delete-cancel-button">キャンセル</button>
+      <button type="button" class="btn btn--danger" data-testid="keyword-delete-confirm-button">削除する</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var session = App.initPage('keyword-detect');
+  if (!session) return;
+
+  /* ---------- 初期データ（リロードで必ずこの状態に戻る） ---------- */
+
+  var keywords = [
+    { id: 1, name: '解約',         category: 'リスク', notify: '管理者',     enabled: true },
+    { id: 2, name: 'クレーム',     category: 'リスク', notify: 'SV',         enabled: true },
+    { id: 3, name: 'キャンペーン', category: '営業',   notify: 'チーム全体', enabled: false }
+  ];
+  var nextId = 4;
+
+  var modal          = document.querySelector('[data-testid="keyword-modal"]');
+  var heading        = document.querySelector('[data-testid="keyword-modal-heading"]');
+  var nameInput      = document.querySelector('[data-testid="keyword-name-input"]');
+  var categorySelect = document.querySelector('[data-testid="keyword-category-select"]');
+  var notifyInput    = document.querySelector('[data-testid="keyword-notify-input"]');
+  var enabledCheck   = document.querySelector('[data-testid="keyword-enabled-checkbox"]');
+  var nameErr        = document.querySelector('[data-testid="keyword-name-error"]');
+  var addButton      = document.querySelector('[data-testid="keyword-add-submit-button"]');
+  var saveButton     = document.querySelector('[data-testid="keyword-save-button"]');
+
+  var deleteModal    = document.querySelector('[data-testid="keyword-delete-modal"]');
+  var listEl         = document.querySelector('[data-testid="keyword-list"]');
+  var flashEl        = document.querySelector('[data-testid="flash-area"]');
+
+  var editingId = null;
+  var deletingId = null;
+
+  /* ---------- 描画 ---------- */
+
+  function flash(message) {
+    flashEl.innerHTML =
+      '<div class="alert alert--success" role="status" data-testid="flash-message" ' +
+      'style="margin-bottom:16px">' + App.esc(message) + '</div>';
+  }
+
+  function render() {
+    if (!keywords.length) {
+      listEl.innerHTML =
+        '<tr><td class="empty" colspan="5" data-testid="keyword-list-empty">' +
+        'キーワードはまだ登録されていません。</td></tr>';
+      return;
+    }
+    listEl.innerHTML = keywords.map(function (k) {
+      var badge = k.enabled
+        ? '<span class="badge badge--on" data-testid="keyword-status">有効</span>'
+        : '<span class="badge badge--off" data-testid="keyword-status">無効</span>';
+      return '' +
+        '<tr data-testid="keyword-row" data-keyword-id="' + k.id + '">' +
+          '<td data-testid="keyword-name">' + App.esc(k.name) + '</td>' +
+          '<td data-testid="keyword-category">' + App.esc(k.category) + '</td>' +
+          '<td data-testid="keyword-notify">' + App.esc(k.notify) + '</td>' +
+          '<td>' + badge + '</td>' +
+          '<td class="actions">' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-testid="keyword-edit-button">編集</button>' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-testid="keyword-delete-button" ' +
+              'style="color:var(--danger)">削除</button>' +
+          '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ---------- モーダル制御 ---------- */
+
+  /** hidden 属性だけでは .btn の display 指定に負けるため、display も合わせて切り替える */
+  function setHidden(el, hidden) {
+    el.hidden = hidden;
+    el.style.display = hidden ? 'none' : '';
+  }
+
+  function openModal(mode, keyword) {
+    editingId = keyword ? keyword.id : null;
+    heading.textContent = mode === 'edit' ? 'キーワード編集' : 'キーワード追加';
+    nameInput.value      = keyword ? keyword.name : '';
+    categorySelect.value = keyword ? keyword.category : 'リスク';
+    notifyInput.value    = keyword ? keyword.notify : '';
+    enabledCheck.checked = keyword ? keyword.enabled : true;
+    nameErr.hidden = true;
+    setHidden(addButton, mode === 'edit');
+    setHidden(saveButton, mode !== 'edit');
+    modal.hidden = false;
+    nameInput.focus();
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    editingId = null;
+  }
+
+  function validate() {
+    var ok = true;
+    nameErr.hidden = true;
+    if (!nameInput.value.trim()) { nameErr.hidden = false; ok = false; }
+    return ok;
+  }
+
+  function save() {
+    if (!validate()) return;
+    var name = nameInput.value.trim();
+    var category = categorySelect.value;
+    var notify = notifyInput.value.trim();
+    var enabled = enabledCheck.checked;
+
+    if (editingId === null) {
+      keywords.push({
+        id: nextId++,
+        name: name,
+        category: category,
+        notify: notify,
+        enabled: enabled
+      });
+      flash('キーワードを追加しました');
+    } else {
+      keywords.forEach(function (k) {
+        if (k.id === editingId) {
+          k.name = name;
+          k.category = category;
+          k.notify = notify;
+          k.enabled = enabled;
+        }
+      });
+      flash('キーワードを更新しました');
+    }
+    closeModal();
+    render();
+  }
+
+  /* ---------- イベント ---------- */
+
+  document.querySelector('[data-testid="add-keyword-button"]')
+    .addEventListener('click', function () { openModal('new', null); });
+
+  document.querySelector('[data-testid="keyword-modal-close-button"]').addEventListener('click', closeModal);
+  document.querySelector('[data-testid="keyword-cancel-button"]').addEventListener('click', closeModal);
+  addButton.addEventListener('click', save);
+  saveButton.addEventListener('click', save);
+
+  listEl.addEventListener('click', function (e) {
+    var row = e.target.closest('[data-testid="keyword-row"]');
+    if (!row) return;
+    var id = Number(row.getAttribute('data-keyword-id'));
+
+    if (e.target.closest('[data-testid="keyword-edit-button"]')) {
+      var target = keywords.filter(function (k) { return k.id === id; })[0];
+      if (target) openModal('edit', target);
+    }
+    if (e.target.closest('[data-testid="keyword-delete-button"]')) {
+      deletingId = id;
+      deleteModal.hidden = false;
+    }
+  });
+
+  function closeDeleteModal() { deleteModal.hidden = true; deletingId = null; }
+  document.querySelector('[data-testid="keyword-delete-modal-close-button"]').addEventListener('click', closeDeleteModal);
+  document.querySelector('[data-testid="keyword-delete-cancel-button"]').addEventListener('click', closeDeleteModal);
+  document.querySelector('[data-testid="keyword-delete-confirm-button"]').addEventListener('click', function () {
+    keywords = keywords.filter(function (k) { return k.id !== deletingId; });
+    closeDeleteModal();
+    render();
+    flash('キーワードを削除しました');
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

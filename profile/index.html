@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>プロフィール設定 | Comdesk Practice</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header data-shell="header"></header>
+  <div class="app-body">
+    <aside data-shell="sidebar"></aside>
+    <main class="main">
+
+      <div class="page-head">
+        <div>
+          <h1 data-testid="page-title">プロフィール設定</h1>
+          <p>ログイン中のアカウント情報の確認と、表示名・電話番号の変更ができます。</p>
+        </div>
+        <span class="page-head__spacer"></span>
+      </div>
+
+      <div data-testid="flash-area" aria-live="polite"></div>
+
+      <div class="card">
+        <div class="card__head"><h2>アカウント情報</h2></div>
+        <div class="card__body" style="padding:0">
+          <table class="table" data-testid="profile-info-table">
+            <tbody>
+              <tr>
+                <th style="width:180px">ユーザーID</th>
+                <td data-testid="profile-userid"></td>
+              </tr>
+              <tr>
+                <th>氏名</th>
+                <td data-testid="profile-name"></td>
+              </tr>
+              <tr>
+                <th>所属</th>
+                <td data-testid="profile-department">SSI事業部</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><h2>プロフィールの編集</h2></div>
+        <div class="card__body">
+          <div class="field">
+            <label class="field__label" for="profileName">表示名</label>
+            <input class="input" type="text" id="profileName" data-testid="profile-name-input">
+          </div>
+          <div class="field">
+            <label class="field__label" for="profilePhone">電話番号</label>
+            <input class="input" type="text" id="profilePhone" data-testid="profile-phone-input">
+          </div>
+          <button type="button" class="btn" data-testid="profile-save-button">保存</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var session = App.initPage(null);
+  if (!session) return;
+
+  var useridEl = document.querySelector('[data-testid="profile-userid"]');
+  var nameEl   = document.querySelector('[data-testid="profile-name"]');
+  var nameInput  = document.querySelector('[data-testid="profile-name-input"]');
+  var phoneInput = document.querySelector('[data-testid="profile-phone-input"]');
+  var flashEl  = document.querySelector('[data-testid="flash-area"]');
+
+  /* ---------- 初期表示（セッションの値をそのまま表示） ---------- */
+
+  useridEl.textContent = session.userId;
+  nameEl.textContent   = session.name;
+  nameInput.value      = session.name;
+  phoneInput.value     = '090-0000-0000';
+
+  function flash(message) {
+    flashEl.innerHTML =
+      '<div class="alert alert--success" role="status" data-testid="flash-message" ' +
+      'style="margin-bottom:16px">' + App.esc(message) + '</div>';
+  }
+
+  /* ---------- イベント ---------- */
+
+  document.querySelector('[data-testid="profile-save-button"]')
+    .addEventListener('click', function () {
+      nameEl.textContent = nameInput.value;
+      flash('プロフィールを更新しました');
+    });
+})();
+</script>
+</body>
+</html>

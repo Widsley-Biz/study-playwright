@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>情報共有ボード | Comdesk Practice</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header data-shell="header"></header>
+  <div class="app-body">
+    <aside data-shell="sidebar"></aside>
+    <main class="main">
+
+      <div class="page-head">
+        <div>
+          <h1 data-testid="page-title">情報共有ボード</h1>
+          <p>チーム全体への連絡事項を投稿・編集・削除できます。</p>
+        </div>
+        <span class="page-head__spacer"></span>
+        <button type="button" class="btn" data-testid="new-post-button">新規投稿</button>
+      </div>
+
+      <div data-testid="flash-area" aria-live="polite"></div>
+
+      <section class="post-list" data-testid="post-list"></section>
+
+      <div class="card" style="margin-top:24px">
+        <div class="card__head"><h2>ボードへのフィードバック</h2></div>
+        <div class="card__body">
+          <div class="field">
+            <label class="field__label" for="feedback">ご意見・ご要望</label>
+            <textarea class="textarea" id="feedback" data-testid="feedback-input"
+                      style="min-height:80px"></textarea>
+          </div>
+          <button type="button" class="btn btn--secondary" data-testid="feedback-send-button">送信する</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- 投稿モーダル（新規／編集 共用） -->
+<div class="modal-backdrop" data-testid="post-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
+    <div class="modal__head">
+      <h2 id="modal-heading" data-testid="modal-heading">新規投稿</h2>
+      <button type="button" class="modal__close" data-testid="modal-close-button"
+              aria-label="閉じる">×</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="postTitle">タイトル<span class="field__req">必須</span></label>
+        <input class="input" type="text" id="postTitle" data-testid="modal-title-input">
+        <p class="error-text" data-testid="modal-title-error" hidden>必須項目です</p>
+      </div>
+      <div class="field mb-0">
+        <label class="field__label" for="postContent">本文<span class="field__req">必須</span></label>
+        <textarea class="textarea" id="postContent" data-testid="modal-content-input"></textarea>
+        <p class="error-text" data-testid="modal-content-error" hidden>必須項目です</p>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--secondary" data-testid="modal-cancel-button">閉じる</button>
+      <button type="button" class="btn" data-testid="modal-post-button">投稿</button>
+      <button type="button" class="btn" data-testid="modal-send-button" hidden>送信</button>
+    </div>
+  </div>
+</div>
+
+<!-- 削除確認モーダル -->
+<div class="modal-backdrop" data-testid="delete-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-heading" style="max-width:420px">
+    <div class="modal__head">
+      <h2 id="delete-heading">投稿の削除</h2>
+      <button type="button" class="modal__close" data-testid="delete-modal-close-button"
+              aria-label="閉じる">×</button>
+    </div>
+    <div class="modal__body">
+      <p class="mb-0" data-testid="delete-modal-message">この投稿を削除します。よろしいですか？</p>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--secondary" data-testid="delete-cancel-button">キャンセル</button>
+      <button type="button" class="btn btn--danger" data-testid="delete-confirm-button">削除する</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var session = App.initPage('announce');
+  if (!session) return;
+
+  /* ---------- 初期データ（リロードで必ずこの状態に戻る） ---------- */
+
+  var posts = [
+    { id: 1, title: 'リリース手順書を更新しました',
+      content: 'v2.4 のリリース手順書を更新しています。作業前に必ず最新版をご確認ください。',
+      author: '田中 太郎', createdAt: '2026/04/01 10:15' },
+    { id: 2, title: '定例MTGの時間変更について',
+      content: '来週より定例MTGの開始時間を 10:00 → 10:30 に変更します。',
+      author: '山田 花子', createdAt: '2026/04/03 18:42' },
+    { id: 3, title: '検証環境メンテナンスのお知らせ',
+      content: '今週末に検証環境のメンテナンスを実施します。停止時間は 22:00〜24:00 の予定です。',
+      author: '佐藤 健', createdAt: '2026/04/05 09:00' }
+  ];
+  var nextId = 4;
+
+  var modal        = document.querySelector('[data-testid="post-modal"]');
+  var heading      = document.querySelector('[data-testid="modal-heading"]');
+  var titleInput   = document.querySelector('[data-testid="modal-title-input"]');
+  var contentInput = document.querySelector('[data-testid="modal-content-input"]');
+  var titleErr     = document.querySelector('[data-testid="modal-title-error"]');
+  var contentErr   = document.querySelector('[data-testid="modal-content-error"]');
+  var postButton   = document.querySelector('[data-testid="modal-post-button"]');
+  var sendButton   = document.querySelector('[data-testid="modal-send-button"]');
+
+  var deleteModal  = document.querySelector('[data-testid="delete-modal"]');
+  var listEl       = document.querySelector('[data-testid="post-list"]');
+  var flashEl      = document.querySelector('[data-testid="flash-area"]');
+
+  var editingId = null;
+  var deletingId = null;
+
+  /* ---------- 描画 ---------- */
+
+  function flash(message) {
+    flashEl.innerHTML =
+      '<div class="alert alert--success" role="status" data-testid="flash-message" ' +
+      'style="margin-bottom:16px">' + App.esc(message) + '</div>';
+  }
+
+  function render() {
+    if (!posts.length) {
+      listEl.innerHTML =
+        '<p class="empty" data-testid="post-list-empty">投稿はまだありません。</p>';
+      return;
+    }
+    listEl.innerHTML = posts.map(function (p) {
+      return '' +
+        '<article class="post" data-testid="post-item" data-post-id="' + p.id + '">' +
+          '<div class="post__head">' +
+            '<h2 class="post__title" data-testid="post-title">' + App.esc(p.title) + '</h2>' +
+            '<span class="post__meta" data-testid="post-meta">' +
+              App.esc(p.author) + '・' + App.esc(p.createdAt) +
+            '</span>' +
+            '<span class="post__actions">' +
+              '<button type="button" class="btn btn--ghost btn--sm" data-testid="post-edit-button">編集</button>' +
+              '<button type="button" class="btn btn--ghost btn--sm" data-testid="post-delete-button" ' +
+                'style="color:var(--danger)">削除</button>' +
+            '</span>' +
+          '</div>' +
+          '<p class="post__body" data-testid="post-content">' + App.esc(p.content) + '</p>' +
+        '</article>';
+    }).join('');
+  }
+
+  /* ---------- モーダル制御 ---------- */
+
+  function openModal(mode, post) {
+    editingId = post ? post.id : null;
+    heading.textContent = mode === 'edit' ? '投稿の編集' : '新規投稿';
+    titleInput.value   = post ? post.title : '';
+    contentInput.value = post ? post.content : '';
+    titleErr.hidden = true;
+    contentErr.hidden = true;
+    postButton.hidden = mode === 'edit';
+    sendButton.hidden = mode !== 'edit';
+    modal.hidden = false;
+    titleInput.focus();
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    editingId = null;
+  }
+
+  function validate() {
+    var ok = true;
+    titleErr.hidden = true;
+    contentErr.hidden = true;
+    if (!titleInput.value.trim())   { titleErr.hidden = false;   ok = false; }
+    if (!contentInput.value.trim()) { contentErr.hidden = false; ok = false; }
+    return ok;
+  }
+
+  function save() {
+    if (!validate()) return;
+    var title = titleInput.value.trim();
+    var content = contentInput.value.trim();
+
+    if (editingId === null) {
+      posts.unshift({
+        id: nextId++,
+        title: title,
+        content: content,
+        author: session.name,
+        createdAt: App.formatDateTime(new Date())
+      });
+      flash('投稿しました');
+    } else {
+      posts.forEach(function (p) {
+        if (p.id === editingId) { p.title = title; p.content = content; }
+      });
+      flash('投稿を更新しました');
+    }
+    closeModal();
+    render();
+  }
+
+  /* ---------- イベント ---------- */
+
+  document.querySelector('[data-testid="new-post-button"]')
+    .addEventListener('click', function () { openModal('new', null); });
+
+  document.querySelector('[data-testid="modal-close-button"]').addEventListener('click', closeModal);
+  document.querySelector('[data-testid="modal-cancel-button"]').addEventListener('click', closeModal);
+  postButton.addEventListener('click', save);
+  sendButton.addEventListener('click', save);
+
+  listEl.addEventListener('click', function (e) {
+    var item = e.target.closest('[data-testid="post-item"]');
+    if (!item) return;
+    var id = Number(item.getAttribute('data-post-id'));
+
+    if (e.target.closest('[data-testid="post-edit-button"]')) {
+      var target = posts.filter(function (p) { return p.id === id; })[0];
+      if (target) openModal('edit', target);
+    }
+    if (e.target.closest('[data-testid="post-delete-button"]')) {
+      deletingId = id;
+      deleteModal.hidden = false;
+    }
+  });
+
+  function closeDeleteModal() { deleteModal.hidden = true; deletingId = null; }
+  document.querySelector('[data-testid="delete-modal-close-button"]').addEventListener('click', closeDeleteModal);
+  document.querySelector('[data-testid="delete-cancel-button"]').addEventListener('click', closeDeleteModal);
+  document.querySelector('[data-testid="delete-confirm-button"]').addEventListener('click', function () {
+    posts = posts.filter(function (p) { return p.id !== deletingId; });
+    closeDeleteModal();
+    render();
+    flash('投稿を削除しました');
+  });
+
+  document.querySelector('[data-testid="feedback-send-button"]').addEventListener('click', function () {
+    var input = document.querySelector('[data-testid="feedback-input"]');
+    if (!input.value.trim()) return;
+    input.value = '';
+    flash('フィードバックを送信しました');
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

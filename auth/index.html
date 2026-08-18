@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ログイン | Comdesk Practice</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="login-page">
+
+<main class="login-card">
+  <div class="login-card__brand">
+    <svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true" style="color:var(--brand)">
+      <rect x="1" y="3" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M5 7.5h8M5 10.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    <h1 class="login-card__title">ログイン</h1>
+  </div>
+  <p class="login-card__sub">Comdesk Practice ／ 研修用練習環境</p>
+
+  <div data-testid="login-error-area" aria-live="polite"></div>
+
+  <form novalidate data-testid="login-form">
+    <div class="field">
+      <label class="field__label" for="userId">
+        ユーザーIDまたはメールアドレス<span class="field__req">必須</span>
+      </label>
+      <input class="input" type="text" id="userId" name="userId"
+             autocomplete="username" data-testid="login-userid">
+      <p class="error-text" data-testid="login-userid-error" hidden>必須項目です</p>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="password">
+        パスワード<span class="field__req">必須</span>
+      </label>
+      <input class="input" type="password" id="password" name="password"
+             autocomplete="current-password" data-testid="login-password">
+      <p class="error-text" data-testid="login-password-error" hidden>必須項目です</p>
+    </div>
+
+    <button type="submit" class="btn btn--block" data-testid="login-submit">ログイン</button>
+  </form>
+
+  <p class="login-hint">
+    <strong>研修用アカウント</strong><br>
+    ID: <code>user001@widsley.com</code> 〜 <code>user010@widsley.com</code><br>
+    パスワード: <code>password</code>
+  </p>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var form      = document.querySelector('[data-testid="login-form"]');
+  var userId    = document.querySelector('[data-testid="login-userid"]');
+  var password  = document.querySelector('[data-testid="login-password"]');
+  var userIdErr = document.querySelector('[data-testid="login-userid-error"]');
+  var passErr   = document.querySelector('[data-testid="login-password-error"]');
+  var errorArea = document.querySelector('[data-testid="login-error-area"]');
+
+  function clearErrors() {
+    userIdErr.hidden = true;
+    passErr.hidden = true;
+    errorArea.innerHTML = '';
+  }
+
+  function showLoginError() {
+    errorArea.innerHTML =
+      '<div class="alert alert--error" role="alert" data-testid="login-error" style="margin-bottom:16px">' +
+      'ログインに失敗しました</div>';
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearErrors();
+
+    var id = userId.value.trim();
+    var pw = password.value;
+    var hasEmpty = false;
+
+    if (!id) { userIdErr.hidden = false; hasEmpty = true; }
+    if (!pw) { passErr.hidden = false; hasEmpty = true; }
+    if (hasEmpty) return;
+
+    if (App.login(id, pw)) {
+      location.href = App.url('call/');
+    } else {
+      showLoginError();
+    }
+  });
+})();
+</script>
+</body>
+</html>
