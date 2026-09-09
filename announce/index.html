@@ -28,6 +28,13 @@
 
       <section class="post-list" data-testid="post-list"></section>
 
+      <nav class="pagination" data-testid="pagination" aria-label="ページ送り">
+        <button type="button" class="btn btn--secondary btn--sm" data-testid="page-prev-button">前へ</button>
+        <span class="pagination__pages" data-testid="page-numbers"></span>
+        <button type="button" class="btn btn--secondary btn--sm" data-testid="page-next-button">次へ</button>
+        <span class="pagination__info" data-testid="page-indicator"></span>
+      </nav>
+
       <div class="card" style="margin-top:24px">
         <div class="card__head"><h2>ボードへのフィードバック</h2></div>
         <div class="card__body">
@@ -100,18 +107,51 @@
 
   /* ---------- 初期データ（リロードで必ずこの状態に戻る） ---------- */
 
-  var posts = [
-    { id: 1, title: 'リリース手順書を更新しました',
-      content: 'v2.4 のリリース手順書を更新しています。作業前に必ず最新版をご確認ください。',
-      author: '田中 太郎', createdAt: '2026/04/01 10:15' },
-    { id: 2, title: '定例MTGの時間変更について',
+  /* 新しい順に並べておく。1ページ 5件なので 12件 = 3ページになる。 */
+  var SEED_POSTS = [
+    { id: 12, title: '検証環境メンテナンスのお知らせ',
+      content: '今週末に検証環境のメンテナンスを実施します。停止時間は 22:00〜24:00 の予定です。',
+      author: '佐藤 健', createdAt: '2026/04/05 09:00' },
+    { id: 11, title: '定例MTGの時間変更について',
       content: '来週より定例MTGの開始時間を 10:00 → 10:30 に変更します。',
       author: '山田 花子', createdAt: '2026/04/03 18:42' },
-    { id: 3, title: '検証環境メンテナンスのお知らせ',
-      content: '今週末に検証環境のメンテナンスを実施します。停止時間は 22:00〜24:00 の予定です。',
-      author: '佐藤 健', createdAt: '2026/04/05 09:00' }
+    { id: 10, title: 'リリース手順書を更新しました',
+      content: 'v2.4 のリリース手順書を更新しています。作業前に必ず最新版をご確認ください。',
+      author: '田中 太郎', createdAt: '2026/04/01 10:15' },
+    { id: 9, title: '在宅勤務申請フローの変更',
+      content: '在宅勤務の申請は前日18時までにお願いします。当日申請は上長承認が必要です。',
+      author: '鈴木 一郎', createdAt: '2026/03/30 14:20' },
+    { id: 8, title: '新メンバー紹介（4月入社）',
+      content: '4月より3名が入社します。初日は各チームで自己紹介の時間を設けてください。',
+      author: '高橋 美咲', createdAt: '2026/03/27 11:05' },
+    { id: 7, title: 'キーワード検知ルールの見直し',
+      content: 'クレーム系キーワードの通知先を変更しました。設定画面よりご確認ください。',
+      author: '伊藤 大輔', createdAt: '2026/03/25 16:40' },
+    { id: 6, title: '請求書提出期限のリマインド',
+      content: '今月の請求書提出期限は 3月31日 です。期限厳守でお願いします。',
+      author: '渡辺 結衣', createdAt: '2026/03/23 09:30' },
+    { id: 5, title: '社内アンケートご協力のお願い',
+      content: '働き方に関する社内アンケートを実施しています。今週中にご回答ください。',
+      author: '中村 翔', createdAt: '2026/03/20 13:15' },
+    { id: 4, title: 'セキュリティ研修の受講について',
+      content: '年次セキュリティ研修が公開されました。全員必須です。受講期限は4月末です。',
+      author: '小林 彩', createdAt: '2026/03/18 10:00' },
+    { id: 3, title: '備品購入申請の窓口変更',
+      content: '備品購入の申請先が総務部に変更になりました。旧フォームは使えません。',
+      author: '加藤 誠', createdAt: '2026/03/16 15:50' },
+    { id: 2, title: '年度末の勤怠締めについて',
+      content: '年度末の勤怠締めは 3月30日 12:00 です。早めの入力をお願いします。',
+      author: '吉田 香織', createdAt: '2026/03/13 17:25' },
+    { id: 1, title: 'オフィス移転のスケジュール',
+      content: '5月に本社オフィスを移転します。詳細スケジュールは追ってご案内します。',
+      author: '山本 隆', createdAt: '2026/03/10 08:45' }
   ];
-  var nextId = 4;
+
+  var posts = SEED_POSTS.slice();
+  var nextId = 13;
+
+  var PER_PAGE = 5;
+  var currentPage = 1;
 
   var modal        = document.querySelector('[data-testid="post-modal"]');
   var heading      = document.querySelector('[data-testid="modal-heading"]');
@@ -126,6 +166,12 @@
   var listEl       = document.querySelector('[data-testid="post-list"]');
   var flashEl      = document.querySelector('[data-testid="flash-area"]');
 
+  var pagination   = document.querySelector('[data-testid="pagination"]');
+  var pageNumbers  = document.querySelector('[data-testid="page-numbers"]');
+  var pageIndicator= document.querySelector('[data-testid="page-indicator"]');
+  var prevButton   = document.querySelector('[data-testid="page-prev-button"]');
+  var nextButton   = document.querySelector('[data-testid="page-next-button"]');
+
   var editingId = null;
   var deletingId = null;
 
@@ -137,13 +183,49 @@
       'style="margin-bottom:16px">' + App.esc(message) + '</div>';
   }
 
+  function totalPages() {
+    return Math.max(1, Math.ceil(posts.length / PER_PAGE));
+  }
+
+  function renderPagination() {
+    var total = totalPages();
+
+    if (posts.length <= PER_PAGE) {
+      pagination.hidden = true;
+      return;
+    }
+    pagination.hidden = false;
+
+    var html = '';
+    for (var i = 1; i <= total; i++) {
+      html += '<button type="button" class="page-number" data-testid="page-number-button" ' +
+              'data-page="' + i + '"' +
+              (i === currentPage ? ' aria-current="page"' : '') +
+              '>' + i + '</button>';
+    }
+    pageNumbers.innerHTML = html;
+
+    prevButton.disabled = currentPage === 1;
+    nextButton.disabled = currentPage === total;
+    pageIndicator.textContent = '全 ' + posts.length + ' 件 / ' + currentPage + ' ページ目（全 ' + total + ' ページ）';
+  }
+
   function render() {
     if (!posts.length) {
       listEl.innerHTML =
         '<p class="empty" data-testid="post-list-empty">投稿はまだありません。</p>';
+      pagination.hidden = true;
       return;
     }
-    listEl.innerHTML = posts.map(function (p) {
+
+    var total = totalPages();
+    if (currentPage > total) currentPage = total;
+    if (currentPage < 1) currentPage = 1;
+
+    var start = (currentPage - 1) * PER_PAGE;
+    var visible = posts.slice(start, start + PER_PAGE);
+
+    listEl.innerHTML = visible.map(function (p) {
       return '' +
         '<article class="post" data-testid="post-item" data-post-id="' + p.id + '">' +
           '<div class="post__head">' +
@@ -160,6 +242,15 @@
           '<p class="post__body" data-testid="post-content">' + App.esc(p.content) + '</p>' +
         '</article>';
     }).join('');
+
+    renderPagination();
+  }
+
+  function goToPage(n) {
+    var total = totalPages();
+    if (n < 1 || n > total || n === currentPage) return;
+    currentPage = n;
+    render();
   }
 
   /* ---------- モーダル制御 ---------- */
@@ -204,6 +295,7 @@
         author: session.name,
         createdAt: App.formatDateTime(new Date())
       });
+      currentPage = 1;   // 新規投稿は先頭に入るので1ページ目に戻す
       flash('投稿しました');
     } else {
       posts.forEach(function (p) {
@@ -238,6 +330,14 @@
       deletingId = id;
       deleteModal.hidden = false;
     }
+  });
+
+  prevButton.addEventListener('click', function () { goToPage(currentPage - 1); });
+  nextButton.addEventListener('click', function () { goToPage(currentPage + 1); });
+  pageNumbers.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-testid="page-number-button"]');
+    if (!btn) return;
+    goToPage(Number(btn.getAttribute('data-page')));
   });
 
   function closeDeleteModal() { deleteModal.hidden = true; deletingId = null; }

@@ -41,7 +41,7 @@ test('情報共有ボード: 投稿/編集/削除', async ({ page }) => {
   await login(page);
   await page.getByTestId('nav-announce').click();
   await expect(page.getByTestId('page-title')).toHaveText('情報共有ボード');
-  await expect(page.getByTestId('post-item')).toHaveCount(3);
+  await expect(page.getByTestId('post-item')).toHaveCount(5);   // 1ページ5件
 
   await page.getByTestId('new-post-button').click();
   await expect(page.getByTestId('modal-post-button')).toBeVisible();
@@ -49,7 +49,7 @@ test('情報共有ボード: 投稿/編集/削除', async ({ page }) => {
   await page.getByTestId('modal-title-input').fill('テスト投稿');
   await page.getByTestId('modal-content-input').fill('Playwrightで自動化検証中');
   await page.getByTestId('modal-post-button').click();
-  await expect(page.getByTestId('post-item')).toHaveCount(4);
+  await expect(page.getByTestId('post-item')).toHaveCount(5);
   await expect(page.getByTestId('post-title').first()).toHaveText('テスト投稿');
 
   await page.getByTestId('post-edit-button').first().click();
@@ -61,10 +61,41 @@ test('情報共有ボード: 投稿/編集/削除', async ({ page }) => {
 
   await page.getByTestId('post-delete-button').first().click();
   await page.getByTestId('delete-confirm-button').click();
-  await expect(page.getByTestId('post-item')).toHaveCount(3);
+  await expect(page.getByTestId('post-item')).toHaveCount(5);
+  await expect(page.getByTestId('post-title').first()).toHaveText('検証環境メンテナンスのお知らせ');
 
   await expect(page.getByRole('button', { name: '送信', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '送信する' })).toBeVisible();
+});
+
+test('情報共有ボード: ページネーション', async ({ page }) => {
+  await login(page);
+  await page.getByTestId('nav-announce').click();
+
+  // 初期状態: 全12件 / 3ページ / 1ページ目
+  await expect(page.getByTestId('pagination')).toBeVisible();
+  await expect(page.getByTestId('page-number-button')).toHaveCount(3);
+  await expect(page.getByTestId('page-indicator'))
+    .toHaveText('全 12 件 / 1 ページ目（全 3 ページ）');
+  await expect(page.getByTestId('page-prev-button')).toBeDisabled();
+  await expect(page.getByTestId('post-title').first())
+    .toHaveText('検証環境メンテナンスのお知らせ');
+
+  // 「次へ」で2ページ目
+  await page.getByTestId('page-next-button').click();
+  await expect(page.getByTestId('post-item')).toHaveCount(5);
+  await expect(page.getByTestId('post-title').first())
+    .toHaveText('キーワード検知ルールの見直し');
+  await expect(page.getByTestId('page-prev-button')).toBeEnabled();
+
+  // ページ番号で3ページ目（最終ページは2件）
+  await page.getByTestId('page-number-button').nth(2).click();
+  await expect(page.getByTestId('post-item')).toHaveCount(2);
+  await expect(page.getByTestId('page-next-button')).toBeDisabled();
+
+  // 「前へ」で戻れる
+  await page.getByTestId('page-prev-button').click();
+  await expect(page.getByTestId('post-item')).toHaveCount(5);
 });
 
 test('各ページが開く', async ({ page }) => {

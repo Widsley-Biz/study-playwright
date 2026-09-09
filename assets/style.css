@@ -98,6 +98,48 @@ a { color: var(--brand); }
 .btn--sm { min-height: 30px; padding: 0 12px; font-size: 13px; }
 .btn--block { width: 100%; }
 
+.btn:disabled,
+.btn[disabled] {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ---------- ページネーション ---------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.pagination__pages { display: flex; gap: 4px; }
+.pagination__info {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+.page-number {
+  min-width: 34px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.page-number:hover { background: var(--surface-alt); }
+.page-number[aria-current="page"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+
 .field { margin-bottom: 16px; }
 .field__label {
   display: block;

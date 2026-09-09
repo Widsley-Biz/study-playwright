@@ -10,7 +10,7 @@
 
 - 対象アプリ: Comdesk Practice（研修専用練習アプリ / ビルド不要の静的サイト）
 - 最終更新: 2026-08-17
-- 掲載 `data-testid` 数: **135 個（ユニーク）**
+- 掲載 `data-testid` 数: **141 個（ユニーク）**
 
 ---
 
@@ -93,7 +93,7 @@
 | `/` | ルート（リダイレクト） | 不要 | Day1: `page.goto()` とリダイレクト追従の確認 |
 | `/auth/` | ログイン | 不要 | Day1: ロケーター基礎、フォーム入力、正常系／異常系。Day3: 認証状態の使い回し（storageState） |
 | `/call/` | 通常コールモード | **必要** | Day1: ログイン後の着地確認。Day2: テーブル行の取得、`nth` / `filter` / `toHaveCount` |
-| `/announce/` | 情報共有ボード | **必要** | Day2: モーダル操作、CRUD（投稿・編集・削除）、`exact` の使い分け |
+| `/announce/` | 情報共有ボード | **必要** | Day2: モーダル操作、CRUD（投稿・編集・削除）、ページネーション、`exact` の使い分け |
 | `/keyword-detect/` | キーワード設定 | **必要** | Day2: モーダル + テーブルの複合操作、`select` / `checkbox` の操作 |
 | `/users/` | ユーザー管理 | **必要** | Day2: 行を特定して編集、`select` の値検証 |
 | `/access/` | アクセス管理 | **必要** | Day3: トグル操作、複数フィールドのバリデーション網羅（試験の主要題材） |
@@ -271,6 +271,8 @@
 - **説明**: チーム連絡事項の投稿・編集・削除（CRUD）ができます。投稿モーダルは新規／編集で共用し、
   **モードによって確定ボタンが `投稿` と `送信` に切り替わります**。画面下部に「ボードへのフィードバック」
   フォーム（送信ボタン名は `送信する`）があり、`exact` オプションの教材として意図的に配置しています。
+  一覧は **1ページ 5 件のページネーション**付き（初期 12 件 = 3 ページ）で、
+  「2ページ目に何が表示されるか」といった観点のテスト題材にできます。
 
 ### 要素表（一覧エリア）
 
@@ -281,7 +283,7 @@
 | `flash-area` | div | — | `getByTestId('flash-area')` | 共通仕様（§4） |
 | `flash-message` | div | 操作結果メッセージ | `getByTestId('flash-message')` | `role="status"` |
 | `post-list` | section（コンテナ） | — | `getByTestId('post-list')` | 投稿カードの親 |
-| `post-item` | article（投稿カード） | — | `getByTestId('post-item')` | **初期 3 件**。`data-post-id` 属性を保持。件数検証は `toHaveCount()` |
+| `post-item` | article（投稿カード） | — | `getByTestId('post-item')` | **1ページに最大 5 件**（初期データは全 12 件 = 3 ページ）。`data-post-id` 属性を保持。件数検証は `toHaveCount()` |
 | `post-title` | h2（投稿タイトル） | 投稿のタイトル | `getByTestId('post-title')` | 投稿ごとに 1 個。`getByRole('heading')` でも取れるが件数が多いので testid 推奨 |
 | `post-meta` | span | `<投稿者>・<作成日時>`（例: `田中 太郎・2026/04/01 10:15`） | `getByTestId('post-meta')` | 区切りは中黒 `・`。日時形式は `YYYY/MM/DD HH:mm` |
 | `post-content` | p | 投稿本文 | `getByTestId('post-content')` | — |
@@ -290,6 +292,31 @@
 | `post-list-empty` | p（空状態） | `投稿はまだありません。` | `getByTestId('post-list-empty')` | **投稿が 0 件のときだけ** DOM に出現。0 件でないときは存在しない |
 | `feedback-input` | textarea | `ご意見・ご要望` | `getByTestId('feedback-input')` / `getByLabel('ご意見・ご要望')` / `getByRole('textbox', {name:'ご意見・ご要望'})` | `id="feedback"`。カード見出しは `ボードへのフィードバック` |
 | `feedback-send-button` | button | `送信する` | `getByTestId('feedback-send-button')` / `getByRole('button', {name:'送信する'})` | **空欄のままクリックしても何も起こらない**（エラーもフラッシュも出ない） |
+
+### 要素表（ページネーション）
+
+投稿一覧は **1ページ 5 件** で区切られます。初期データは 12 件なので **3 ページ** になります。
+
+| data-testid | 要素種別 | 表示ラベル・ボタン名 | 推奨ロケーター | 備考 |
+| --- | --- | --- | --- | --- |
+| `pagination` | nav（コンテナ） | アクセシブル名 `ページ送り` | `getByTestId('pagination')` / `getByRole('navigation', {name:'ページ送り'})` | **投稿が 5 件以下のときは `hidden`**（全部削除して 5 件以下になると消える） |
+| `page-prev-button` | button | `前へ` | `getByTestId('page-prev-button')` / `getByRole('button', {name:'前へ'})` | **1 ページ目では `disabled`**。検証は `toBeDisabled()` / `toBeEnabled()` |
+| `page-next-button` | button | `次へ` | `getByTestId('page-next-button')` / `getByRole('button', {name:'次へ'})` | **最終ページでは `disabled`** |
+| `page-numbers` | span（コンテナ） | — | `getByTestId('page-numbers')` | ページ番号ボタンの親 |
+| `page-number-button` | button | `1` `2` `3` … | `getByTestId('page-number-button').nth(n)` | **ページ数だけ存在する**ので `.first()` `.nth()` 必須。`data-page` 属性にページ番号。**現在ページのみ `aria-current="page"`** |
+| `page-indicator` | span | `全 12 件 / 1 ページ目（全 3 ページ）` | `getByTestId('page-indicator')` | 件数とページ位置。件数は増減するので完全一致検証に注意 |
+
+現在ページの取得は `aria-current` が使えます。
+
+```ts
+// 現在ページのボタンだけを取る
+await expect(page.getByTestId('page-number-button')
+  .and(page.locator('[aria-current="page"]'))).toHaveText('2');
+
+// もしくはロケーターを直接
+await expect(page.locator('[data-testid="page-number-button"][aria-current="page"]'))
+  .toHaveText('2');
+```
 
 ### 要素表（投稿モーダル：新規／編集 共用）
 
@@ -318,16 +345,28 @@
 
 ### 初期データ（リロードで必ずこの状態に戻る）
 
-| # | タイトル | 投稿者 | 作成日時 |
-| --- | --- | --- | --- |
-| 1 | リリース手順書を更新しました | 田中 太郎 | 2026/04/01 10:15 |
-| 2 | 定例MTGの時間変更について | 山田 花子 | 2026/04/03 18:42 |
-| 3 | 検証環境メンテナンスのお知らせ | 佐藤 健 | 2026/04/05 09:00 |
+全 12 件、**新しい順**に並んでいます。1ページ 5 件なので 3 ページになります。
 
-- 新規投稿は**リストの先頭**に追加されます（`unshift`）。投稿者はログイン中ユーザーの表示名、
+| ページ | 表示順 | タイトル | 投稿者 | 作成日時 |
+| --- | --- | --- | --- | --- |
+| 1 | 1 | 検証環境メンテナンスのお知らせ | 佐藤 健 | 2026/04/05 09:00 |
+| 1 | 2 | 定例MTGの時間変更について | 山田 花子 | 2026/04/03 18:42 |
+| 1 | 3 | リリース手順書を更新しました | 田中 太郎 | 2026/04/01 10:15 |
+| 1 | 4 | 在宅勤務申請フローの変更 | 鈴木 一郎 | 2026/03/30 14:20 |
+| 1 | 5 | 新メンバー紹介（4月入社） | 高橋 美咲 | 2026/03/27 11:05 |
+| 2 | 6 | キーワード検知ルールの見直し | 伊藤 大輔 | 2026/03/25 16:40 |
+| 2 | 7 | 請求書提出期限のリマインド | 渡辺 結衣 | 2026/03/23 09:30 |
+| 2 | 8 | 社内アンケートご協力のお願い | 中村 翔 | 2026/03/20 13:15 |
+| 2 | 9 | セキュリティ研修の受講について | 小林 彩 | 2026/03/18 10:00 |
+| 2 | 10 | 備品購入申請の窓口変更 | 加藤 誠 | 2026/03/16 15:50 |
+| 3 | 11 | 年度末の勤怠締めについて | 吉田 香織 | 2026/03/13 17:25 |
+| 3 | 12 | オフィス移転のスケジュール | 山本 隆 | 2026/03/10 08:45 |
+
+- 新規投稿は**リストの先頭**に追加され、**表示は 1 ページ目に戻ります**。投稿者はログイン中ユーザーの表示名、
   作成日時は**実行時の現在時刻**（`YYYY/MM/DD HH:mm`）です。日時は固定値ではないので、
   完全一致で検証せず正規表現を使ってください。
-- 編集はリスト内の位置を変えません。
+- 編集はリスト内の位置を変えません。**ページも移動しません。**
+- 削除して現在ページが空になった場合は、**1 つ前のページに自動的に戻ります**。
 
 ### エラーメッセージ一覧
 
@@ -794,7 +833,7 @@ await expect(page.getByTestId('post-meta').first())
 
 ## 15. testid 一覧（索引）
 
-全 **135 個**（ユニーク）。掲載順は本文のセクション順です。
+全 **141 個**（ユニーク）。掲載順は本文のセクション順です。
 
 ### 共通シェル（11）
 
@@ -820,10 +859,12 @@ await expect(page.getByTestId('post-meta').first())
 `call-table` / `call-list` / `call-row` / `call-customer-name` / `call-phone` / `call-status` /
 `call-last-called` / `call-start-button`
 
-### `/announce/`（26）
+### `/announce/`（32）
 
 `new-post-button` / `post-list` / `post-list-empty` / `post-item` / `post-title` / `post-meta` /
 `post-content` / `post-edit-button` / `post-delete-button` / `feedback-input` / `feedback-send-button` /
+`pagination` / `page-prev-button` / `page-next-button` / `page-numbers` / `page-number-button` /
+`page-indicator` /
 `post-modal` / `modal-heading` / `modal-close-button` / `modal-title-input` / `modal-title-error` /
 `modal-content-input` / `modal-content-error` / `modal-cancel-button` / `modal-post-button` /
 `modal-send-button` / `delete-modal` / `delete-modal-close-button` / `delete-modal-message` /
