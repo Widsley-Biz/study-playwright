@@ -128,8 +128,12 @@ Vercel は独自ドメイン／プロジェクトドメインのルート（`htt
 ## Playwright からの使い方
 
 `playwright.config.ts` に `baseURL` を設定しておくと、テスト側は
-`page.goto('/auth/')` のようにパスだけを書けます。公開先（ローカル / GitHub Pages / Vercel）を
+`page.goto('auth/')` のようにパスだけを書けます。公開先（ローカル / GitHub Pages / Vercel）を
 切り替えるときは `baseURL` の 1 行だけ直せば済みます。
+
+> **先頭スラッシュを付けないでください。** GitHub Pages はサブパス配信（`/<repo>/`）なので、
+> `page.goto('/auth/')` と書くと `baseURL` のサブパスが落ちます。
+> 詳しくは下の「**パスの書き方**」を参照してください。
 
 ```ts
 // playwright.config.ts
@@ -166,7 +170,7 @@ export default defineConfig({
 import { test, expect } from '@playwright/test';
 
 test('ログインすると通常コールモードに遷移する', async ({ page }) => {
-  await page.goto('/auth/');                              // 末尾スラッシュを付ける
+  await page.goto('auth/');                               // 先頭スラッシュなし・末尾スラッシュあり
   await page.getByTestId('login-userid').fill('user001@widsley.com');
   await page.getByTestId('login-password').fill('password');
   await page.getByTestId('login-submit').click();
@@ -177,21 +181,38 @@ test('ログインすると通常コールモードに遷移する', async ({ pa
 });
 ```
 
-### 末尾スラッシュは必須です
+### パスの書き方（先頭スラッシュなし ＋ 末尾スラッシュあり）
 
-**`page.goto('/auth')` ではなく `page.goto('/auth/')` と書いてください。**
+**`page.goto('auth/')` と書いてください。** 守るルールは 2 つです。
+
+1. **`baseURL` は末尾スラッシュ付きで書く** — `'https://widsley-biz.github.io/study-playwright/'`
+2. **`goto()` のパスは先頭スラッシュなし・末尾スラッシュありで書く** — `'auth/'`
+
+#### なぜ先頭スラッシュを付けないのか
+
+Playwright は `baseURL` とパスを `new URL(path, baseURL)` で解決します。
+**先頭スラッシュはホストの直下を意味する**ので、`baseURL` のサブパス（`/study-playwright/`）が捨てられます。
+GitHub Pages はサブパス配信なので、これに当たります。
+
+| `baseURL` | `goto()` | 解決結果 | |
+| --- | --- | --- | --- |
+| `.../study-playwright/` | `'auth/'` | `.../study-playwright/auth/` | ◎ |
+| `.../study-playwright/` | `'/auth/'` | `https://widsley-biz.github.io/auth/` | ✗ サブパスが落ちる |
+| `.../study-playwright/` | `'auth'` | `.../study-playwright/auth` | △ 301 が挟まる |
+| `.../study-playwright`<br>（末尾スラッシュなし） | `'auth/'` | `https://widsley-biz.github.io/auth/` | ✗ サブパスが落ちる |
+
+**サブパス配信で到達できるのは 1 行目の組み合わせだけです。**
+`baseURL` の末尾スラッシュを落とすと、パスをどう書いても届きません。
+
+`baseURL` がサイトのルート（例: `http://127.0.0.1:4173`）のときは、先頭スラッシュの有無で差は出ません。
+ただし **両方の環境で同じテストを動かすなら、先頭スラッシュなしに揃えてください。**
+
+#### なぜ末尾スラッシュを付けるのか
 
 各画面の実体は `auth/index.html` のようなディレクトリ内の `index.html` です。
 GitHub Pages（および多くの静的ホスティング）は、末尾スラッシュ付きの URL に対して
 ディレクトリの index を返す一方、スラッシュ無しの URL では 301 リダイレクトが挟まったり、
-環境によっては 404 になったりします。`baseURL` に相対パスを結合する際も、
-末尾スラッシュの有無で解決結果が変わります。
-
-| 書き方 | 結果 |
-| --- | --- |
-| `page.goto('/auth/')` | ◎ どの環境でも安定 |
-| `page.goto('/auth')` | △ リダイレクトが挟まる、または 404 |
-| `page.goto('auth/')` | △ `baseURL` の末尾スラッシュ有無に依存する |
+環境によっては 404 になったりします。
 
 `toHaveURL()` で検証するときも、リダイレクト後の URL に末尾スラッシュが付く前提で
 正規表現（`/\/call\//`）を使うのが安全です。
